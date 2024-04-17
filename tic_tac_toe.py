@@ -197,7 +197,6 @@ class TicTacToe:
                 if event.type == pygame.QUIT:
                     local_running = False
                 elif event.type == pygame.FINGERDOWN:
-                    print(event.x, event.y)
                     for button_rect in self.button_rects:
                         if button_rect.collidepoint(event.x * 240, event.y* 320):
                             if button_rect == self.button_rects[0]:
