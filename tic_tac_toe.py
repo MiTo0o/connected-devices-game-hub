@@ -126,57 +126,40 @@ class TicTacToe:
             if GPIO.input(self.QUIT_BUTTON) == GPIO.LOW:
                 print('xdd')
                 self.show_pause_popup()
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    self.running = False
-                elif event.type == pygame.FINGERDOWN:
-                    # Get touch position from the event
-                    touch_x = event.x * self.screen.get_width()
-                    touch_y = event.y * self.screen.get_height()
-                    # Map touch position to game self.grid
-                    cell_x = int(touch_x) // (self.CELL_SIZE + self.CELL_PADDING)
-                    cell_y = int(touch_y) // (self.CELL_SIZE + self.CELL_PADDING)
-                    # Check if the cell is empty and it's the current player's turn
-                    if 0 <= cell_x < 3 and 0 <= cell_y < 3:
-                        if self.grid[cell_y][cell_x] == '' and (self.current_player == 'X' or self.current_player == 'O'):
-                            self.grid[cell_y][cell_x] = self.current_player
-                            winner = self.check_winner()
-                            if winner:
-                                print(f"Player {winner} wins!")
-                            elif self.check_tie():
-                                print("It's a tie!")
-                            else:
-                                self.current_player = 'O' if self.current_player == 'X' else 'X'
-                    
+            else:
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        self.running = False
+                    elif event.type == pygame.FINGERDOWN:
+                        # Get touch position from the event
+                        touch_x = event.x * self.screen.get_width()
+                        touch_y = event.y * self.screen.get_height()
+                        # Map touch position to game self.grid
+                        cell_x = int(touch_x) // (self.CELL_SIZE + self.CELL_PADDING)
+                        cell_y = int(touch_y) // (self.CELL_SIZE + self.CELL_PADDING)
+                        # Check if the cell is empty and it's the current player's turn
+                        if 0 <= cell_x < 3 and 0 <= cell_y < 3:
+                            if self.grid[cell_y][cell_x] == '' and (self.current_player == 'X' or self.current_player == 'O'):
+                                self.grid[cell_y][cell_x] = self.current_player
+                                winner = self.check_winner()
+                                if winner:
+                                    print(f"Player {winner} wins!")
+                                elif self.check_tie():
+                                    print("It's a tie!")
+                                else:
+                                    self.current_player = 'O' if self.current_player == 'X' else 'X'
+                        
+                if not self.paused:
+                    self.screen.fill(WHITE)
+                    self.draw_grid()
 
-            if not self.paused:
-                self.screen.fill(WHITE)
-                self.draw_grid()
-
-                # Font for displaying current player
-                font = pygame.font.SysFont(None, 30)
-                text = font.render("Turn: " + self.current_player, True, BLACK)
-                self.screen.blit(text, (10, 300))
-                pygame.display.flip()
+                    # Font for displaying current player
+                    font = pygame.font.SysFont(None, 30)
+                    text = font.render("Turn: " + self.current_player, True, BLACK)
+                    self.screen.blit(text, (10, 300))
+                    pygame.display.flip()
+                
 # os.putenv('SDL_VIDEODRIVER', 'fbcon')
 # os.putenv('SDL_FBDEV', '/dev/fb1')
 # os.putenv('SDL_MOUSEDRV', 'TSLIB')
 # os.putenv('SDL_MOUSEDEV', '/dev/input/touchself.screen')
-
-# Function to display pause pop-up
-
-# pygame.mouse.set_visible(False)
-# Initialize Pygame
-# pygame.init()
-# pygame.mouse.set_visible(False)
-
-# # Set PiTFT resolution
-# screen = pygame.display.set_mode((240, 320))
-
-
-# ttt = TicTacToe(screen)
-# ttt.run()
-
-# # Quit Pygame
-# pygame.quit()
-# GPIO.cleanup()
