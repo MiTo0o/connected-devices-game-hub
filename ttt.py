@@ -54,9 +54,11 @@ def show_pause_popup():
         
         # Update the display
         pygame.display.flip()
-
+# pygame.mouse.set_visible(False)
 # Initialize Pygame
 pygame.init()
+pygame.mouse.set_visible(False)
+
 
 
 # Set PiTFT resolution
@@ -73,7 +75,7 @@ CELL_PADDING = 1
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
-
+BLUE = (0,0,255)
 # Variable to track current player
 current_player = 'X'
 
@@ -127,7 +129,7 @@ def draw_grid():
                 # Calculate circle radius based on cell size
                 radius = min(CELL_SIZE // 3, CELL_SIZE // 3) // 2
                 # Draw O symbol
-                pygame.draw.circle(screen, RED, (symbol_x, symbol_y), radius, 5)
+                pygame.draw.circle(screen, BLUE, (symbol_x, symbol_y), radius, 5)
 
 
 # Main loop
@@ -169,16 +171,6 @@ while running:
         screen.blit(text, (10, 300))
         pygame.display.flip()
 
-    # # Clear the screen
-    # screen.fill(WHITE)
-
-    # Display current player
-    # text = font.render("Turn: " + current_player, True, BLACK)
-    # screen.blit(text, (10, 300))
-
-    # # Update the display
-    # pygame.display.flip()
-    # print(grid)
 # Quit Pygame
 pygame.quit()
 GPIO.cleanup()
