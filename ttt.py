@@ -10,7 +10,8 @@ import RPi.GPIO as GPIO
 GPIO.setmode(GPIO.BCM)
 QUIT_BUTTON = 17  # GPIO pin for the quit button
 GPIO.setup(QUIT_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-
+SCREEN_WIDTH = 240
+SCREEN_HEIGHT = 320
 # Function to display pause pop-up
 def show_pause_popup():
     # Create a font object
@@ -32,13 +33,16 @@ def show_pause_popup():
                 pygame.quit()
                 GPIO.cleanup()
                 return
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                x, y = pygame.mouse.get_pos()
+            elif event.type == pygame.FINGERDOWN:
+                x, y = event.x * SCREEN_WIDTH, event.y * SCREEN_HEIGHT
+                # print(x, y)
+                # print('quit', quit_button_rect)
                 if quit_button_rect.collidepoint(x, y):
                     pygame.quit()
                     GPIO.cleanup()
                     return
-        
+        if GPIO.input(QUIT_BUTTON) == GPIO.HIGH:
+            paused = False
         # Fill the screen with black background
         screen.fill(BLACK)
         
@@ -131,6 +135,9 @@ running = True
 paused = False
 while running:
     # Handle events
+    if GPIO.input(QUIT_BUTTON) == GPIO.LOW:
+        print('xdd')
+        show_pause_popup()
     for event in pygame.event.get():
         print(event)
         if event.type == pygame.QUIT:
@@ -152,8 +159,7 @@ while running:
                     print("It's a tie!")
                 else:
                     current_player = 'O' if current_player == 'X' else 'X'
-        elif GPIO.input(QUIT_BUTTON) == GPIO.LOW:
-            show_pause_popup()
+        
 
     if not paused:
         screen.fill(WHITE)
