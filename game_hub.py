@@ -15,11 +15,15 @@ GRAY = (200, 200, 200)
 # Load game icons
 game_icon_1 = pygame.image.load("ttt_logo.png")
 game_icon_2 = pygame.image.load("connect_4_logo.png")
+game_icon_3 = pygame.image.load("battleship_logo.png")
+game_icon_4 = pygame.image.load("simon_logo.png")
 # Load more game icons as needed...
 
 # Resize game icons to 60x60 pixels
 game_icon_1 = pygame.transform.scale(game_icon_1, (90, 90))
 game_icon_2 = pygame.transform.scale(game_icon_2, (90, 90))
+game_icon_3 = pygame.transform.scale(game_icon_3, (90, 90))
+game_icon_4 = pygame.transform.scale(game_icon_4, (90, 90))
 # Resize more game icons as needed...
 
 # Set icon positions
@@ -55,6 +59,9 @@ while running:
     # Blit game icons onto the screen
     screen.blit(game_icon_1, (icon_x, icon_y))
     screen.blit(game_icon_2, (icon_x, icon_y + 90 + icon_spacing))
+    screen.blit(game_icon_3, (icon_x + 90 + icon_spacing, icon_y))
+    screen.blit(game_icon_4, (icon_x + 90 + icon_spacing, icon_y + 90 + icon_spacing))
+
     # Blit more game icons as needed...
 
     # Update the display
