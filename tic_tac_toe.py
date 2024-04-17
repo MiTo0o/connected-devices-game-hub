@@ -30,9 +30,10 @@ class TicTacToe:
         # Variable to track current player
         self.current_player = 'X'
         self.confetti_particles = []
-        self.confetti_duration = 3000  # Duration in milliseconds
-        self.max_confetti_particles = 100
-        self.confetti_timer = 0
+        self.button_rects = []
+        # self.confetti_duration = 3000  # Duration in milliseconds
+        # self.max_confetti_particles = 100
+        # self.confetti_timer = 0
     def show_pause_popup(self):
         # Create a font object
         font = pygame.font.Font(None, 36)
@@ -164,15 +165,19 @@ class TicTacToe:
         button_rect = button_text.get_rect(center=(self.SCREEN_WIDTH // 2, rect_y + rect_height + 30))
         pygame.draw.rect(self.screen, (50, 50, 50), button_rect)
         self.screen.blit(button_text, button_rect)
-
+        if button_rect not in self.button_rects:
+            self.button_rects.append(button_rect)
         # Button to start another game
         button_text = font.render("Start New Game", True, (255, 255, 255))
         button_rect = button_text.get_rect(center=(self.SCREEN_WIDTH // 2, rect_y + rect_height + 70))
         pygame.draw.rect(self.screen, (50, 50, 50), button_rect)
         self.screen.blit(button_text, button_rect)
+        if button_rect not in self.button_rects:
+            self.button_rects.append(button_rect)
         # Update the display
         self.update_confetti()  
         pygame.display.flip()
+
     def update_confetti(self):
         if random.randint(0, 100) < 3:
             self.confetti_particles.append(self.create_confetti_particle())
@@ -185,16 +190,30 @@ class TicTacToe:
 
 
     def end_screen(self):
-        running = True
-        while running:
+        local_running = True
+        while local_running:
             self.end_pop_up()
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    running = False
+                    local_running = False
                 elif event.type == pygame.FINGERDOWN:
-                    print(event.x, event.y,'hi')
+                    print(event.x, event.y)
+                    for button_rect in self.button_rects:
+                        if button_rect.collidepoint(event.x * 240, event.y* 320):
+                            if button_rect == self.button_rects[0]:
+                                print("Return to main menu button pressed")
+                                self.running = False
+                                GPIO.cleanup()
+                                return
+                            elif button_rect == self.button_rects[1]:
+                                print("Start new game button pressed")
+                                self.current_player = 'X'
+                                self.confetti_particles = []
+                                self.button_rects = []
+                                self.grid = [['' for _ in range(3)] for _ in range(3)]
+                                self.winner = None
+                                return
             self.clock.tick(60)
-
                
     def run(self):
         while self.running:
