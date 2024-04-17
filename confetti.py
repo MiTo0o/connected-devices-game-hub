@@ -46,6 +46,7 @@ while running:
     text_surface = font.render('HALO', True,(0,0,0))
     text_rect = text_surface.get_rect(center=(screen_width // 2, screen_height // 2))
     screen.blit(text_surface, text_rect)
+    
     for particle in confetti_particles:
         pygame.draw.circle(screen, particle['color'], (particle['x'], particle['y']), particle['size'])
         particle['y'] += 2  # Move particle downwards

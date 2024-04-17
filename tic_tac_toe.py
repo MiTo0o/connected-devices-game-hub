@@ -1,7 +1,7 @@
 import pygame
 import os
 import RPi.GPIO as GPIO
-
+import random
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
@@ -25,10 +25,14 @@ class TicTacToe:
 
         self.running = True
         self.paused = False
-
+        self.winner = None
+        self.clock = pygame.time.Clock()
         # Variable to track current player
         self.current_player = 'X'
-
+        self.confetti_particles = []
+        self.confetti_duration = 3000  # Duration in milliseconds
+        self.max_confetti_particles = 100
+        self.confetti_timer = 0
     def show_pause_popup(self):
         # Create a font object
         font = pygame.font.Font(None, 36)
@@ -120,6 +124,78 @@ class TicTacToe:
                     # Draw O symbol
                     pygame.draw.circle(self.screen, BLUE, (symbol_x, symbol_y), radius, 5)
 
+    def create_confetti_particle(self):
+        x = random.randint(0, self.SCREEN_WIDTH)
+        y = -10
+        size = random.randint(5, 10)
+        color = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+        return {'x': x, 'y': y, 'size': size, 'color': color}
+
+    def end_pop_up(self):
+        # current_time = pygame.time.get_ticks()
+        # if current_time - self.confetti_timer < self.confetti_duration and len(self.confetti_particles) < self.max_confetti_particles:
+        #     self.update_confetti()  # Update confetti animation
+        # elif current_time - self.confetti_timer >= self.confetti_duration:
+        #     self.confetti_particles.clear()  # Clear confetti particles if duration is reached
+        
+        self.screen.fill(WHITE)
+        self.draw_grid()
+        font = pygame.font.SysFont(None, 30)
+        text = font.render("Turn: " + self.current_player, True, BLACK)
+        self.screen.blit(text, (10, 300))
+        
+        # Calculate the size and position of the rectangle
+        rect_width = 200
+        rect_height = 100
+        rect_x = (self.SCREEN_WIDTH - rect_width) // 2
+        rect_y = (self.SCREEN_HEIGHT - rect_height) // 2
+        
+        # Draw the rectangle
+        pygame.draw.rect(self.screen, (50, 50, 50), (rect_x, rect_y, rect_width, rect_height))
+        
+        # Render the text
+        font = pygame.font.Font(None, 36)
+        text_surface = font.render(self.winner, True, (255, 255, 255))  # White text color
+        text_rect = text_surface.get_rect(center=(self.SCREEN_WIDTH // 2, self.SCREEN_HEIGHT // 2))
+        self.screen.blit(text_surface, text_rect)
+        
+        # Button to return to main menu
+        button_text = font.render("Main Menu", True, (255, 255, 255))
+        button_rect = button_text.get_rect(center=(self.SCREEN_WIDTH // 2, rect_y + rect_height + 30))
+        pygame.draw.rect(self.screen, (50, 50, 50), button_rect)
+        self.screen.blit(button_text, button_rect)
+
+        # Button to start another game
+        button_text = font.render("Start New Game", True, (255, 255, 255))
+        button_rect = button_text.get_rect(center=(self.SCREEN_WIDTH // 2, rect_y + rect_height + 70))
+        pygame.draw.rect(self.screen, (50, 50, 50), button_rect)
+        self.screen.blit(button_text, button_rect)
+        # Update the display
+        self.update_confetti()  
+        pygame.display.flip()
+    def update_confetti(self):
+        if random.randint(0, 100) < 3:
+            self.confetti_particles.append(self.create_confetti_particle())
+
+        for particle in self.confetti_particles:
+            pygame.draw.circle(self.screen, particle['color'], (particle['x'], particle['y']), particle['size'])
+            particle['y'] += 2  # Move particle downwards
+            if particle['y'] > self.SCREEN_HEIGHT:  # Remove particles that fall off the screen
+                self.confetti_particles.remove(particle)
+
+
+    def end_screen(self):
+        running = True
+        while running:
+            self.end_pop_up()
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                elif event.type == pygame.FINGERDOWN:
+                    print(event.x, event.y,'hi')
+            self.clock.tick(60)
+
+               
     def run(self):
         while self.running:
             # Handle events
@@ -144,11 +220,14 @@ class TicTacToe:
                                 winner = self.check_winner()
                                 if winner:
                                     print(f"Player {winner} wins!")
+                                    self.winner = f"Player {winner} wins!"
                                 elif self.check_tie():
                                     print("It's a tie!")
+                                    self.winner = "It's a tie!"
                                 else:
                                     self.current_player = 'O' if self.current_player == 'X' else 'X'
-                        
+                if self.winner:
+                    self.end_screen()        
                 if not self.paused:
                     self.screen.fill(WHITE)
                     self.draw_grid()
