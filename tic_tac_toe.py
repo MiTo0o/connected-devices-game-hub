@@ -1,5 +1,6 @@
 import pygame
 import os
+import json
 import RPi.GPIO as GPIO
 import random
 import paho.mqtt.client as mqtt
@@ -13,9 +14,10 @@ GAME_WINNER_TOPIC = "game/winner"
 
 # Initialize MQTT client
 client = mqtt.Client()
-client.connect("localhost", 1883)
+client.connect("10.219.17.163", 1883)
 client.subscribe(GAME_STATE_TOPIC)
 client.subscribe(GAME_WINNER_TOPIC)
+
 
 class TicTacToe:
     def __init__(self, screen):
@@ -38,24 +40,29 @@ class TicTacToe:
         self.winner = None
         self.clock = pygame.time.Clock()
         # Variable to track current player
-        self.current_player = 'X'
+        self.current_player = 'O'
         self.confetti_particles = []
         self.button_rects = []
+        self.disabled = True
         # self.confetti_duration = 3000  # Duration in milliseconds
         # self.max_confetti_particles = 100
         # self.confetti_timer = 0
-        
-        
+        self.player = "O"
+        client.on_message = self.on_message
+        client.loop_start()
+
+    
     def on_message(self, client, userdata, message):
         topic = message.topic
         payload = message.payload.decode("utf-8")
+        print(payload)
         if topic == GAME_STATE_TOPIC:
-            # Parse the payload and update the game state accordingly
-            moves = payload.split(",")
-            for move in moves:
-                if move:
-                    x, y, symbol = move.split(" ")
-                    self.grid[int(y)][int(x)] = symbol
+            new_info = json.loads(payload)
+            self.grid = new_info["grid"] 
+            if new_info["player"] == self.player:
+               self.disabled = True
+            else:
+               self.disabled = False
         elif topic == GAME_WINNER_TOPIC:
             # Display the winner
             print("Winner:", payload)
@@ -232,7 +239,7 @@ class TicTacToe:
                                 return
                             elif button_rect == self.button_rects[1]:
                                 print("Start new game button pressed")
-                                self.current_player = 'X'
+
                                 self.confetti_particles = []
                                 self.button_rects = []
                                 self.grid = [['' for _ in range(3)] for _ in range(3)]
@@ -252,26 +259,31 @@ class TicTacToe:
                         self.running = False
                     elif event.type == pygame.FINGERDOWN:
                         # Get touch position from the event
-                        touch_x = event.x * self.screen.get_width()
-                        touch_y = event.y * self.screen.get_height()
-                        # Map touch position to game self.grid
-                        cell_x = int(touch_x) // (self.CELL_SIZE + self.CELL_PADDING)
-                        cell_y = int(touch_y) // (self.CELL_SIZE + self.CELL_PADDING)
-                        # Check if the cell is empty and it's the current player's turn
-                        if 0 <= cell_x < 3 and 0 <= cell_y < 3:
-                            if self.grid[cell_y][cell_x] == '' and (self.current_player == 'X' or self.current_player == 'O'):
-                                self.grid[cell_y][cell_x] = self.current_player
-                                winner = self.check_winner()
-                                if winner:
-                                    print(f"Player {winner} wins!")
-                                    self.winner = f"Player {winner} wins!"
-                                    client.publish(GAME_WINNER_TOPIC, self.winner)
-                                elif self.check_tie():
-                                    print("It's a tie!")
-                                    self.winner = "It's a tie!"
-                                else:
-                                    self.current_player = 'O' if self.current_player == 'X' else 'X'
-                                    client.publish(GAME_STATE_TOPIC, ','.join(','.join(row) for row in self.grid))
+                        if self.disabled == False:
+                            touch_x = event.x * self.screen.get_width()
+                            touch_y = event.y * self.screen.get_height()
+                            # Map touch position to game self.grid
+                            cell_x = int(touch_x) // (self.CELL_SIZE + self.CELL_PADDING)
+                            cell_y = int(touch_y) // (self.CELL_SIZE + self.CELL_PADDING)
+                            # Check if the cell is empty and it's the current player's turn
+                            if 0 <= cell_x < 3 and 0 <= cell_y < 3:
+                                if self.grid[cell_y][cell_x] == '' and (self.current_player == 'X' or self.current_player == 'O'):
+                                    self.grid[cell_y][cell_x] = self.current_player
+                                    winner = self.check_winner()
+                                    if winner:
+                                        print(f"Player {winner} wins!")
+                                        self.winner = f"Player {winner} wins!"
+                                        client.publish(GAME_WINNER_TOPIC, self.winner)
+                                    elif self.check_tie():
+                                        print("It's a tie!")
+                                        self.winner = "It's a tie!"
+                                    else:
+
+                                        info = {
+                                            "grid": self.grid,
+                                            "player": self.player
+                                        }
+                                        client.publish(GAME_STATE_TOPIC, json.dumps(info))
 
                 if self.winner:
                     self.end_screen()        

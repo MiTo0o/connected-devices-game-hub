@@ -1,37 +1,22 @@
-import RPi.GPIO as GPIO
-import time
+import paho.mqtt.client as mqtt
 
-# Initialize GPIO
-GPIO.setmode(GPIO.BCM)
+def on_connect(client, userdata, flags, rc):
+    print("Connected with result code " + str(rc))
+    # Subscribing to all topics of interest here
+    client.subscribe("topic/test")
 
-# Define the GPIO pins for the buttons
-BUTTON_1_PIN = 17  # GPIO pin for button 1
-BUTTON_2_PIN = 18  # GPIO pin for button 2
-BUTTON_3_PIN = 22  # GPIO pin for button 3
-BUTTON_4_PIN = 23  # GPIO pin for button 4
+def on_message(client, userdata, msg):
+    print(f"Received message on {msg.topic}: {msg.payload.decode()}")
 
-# Setup GPIO pins as inputs
-GPIO.setup(BUTTON_1_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.setup(BUTTON_2_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.setup(BUTTON_3_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.setup(BUTTON_4_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+# Setup the MQTT client on Device 2
+client2 = mqtt.Client()
+client2.on_connect = on_connect
+client2.on_message = on_message
 
-try:
-    # Main loop to test buttons
-    while True:
-        # Check if each button is pressed
-        if GPIO.input(BUTTON_1_PIN) == GPIO.LOW:
-            print("Button 1 pressed")
-        if GPIO.input(BUTTON_2_PIN) == GPIO.LOW:
-            print("Button 2 pressed")
-        if GPIO.input(BUTTON_3_PIN) == GPIO.LOW:
-            print("Button 3 pressed")
-        if GPIO.input(BUTTON_4_PIN) == GPIO.LOW:
-            print("Button 4 pressed")
+# Connect to the broker running on Device 1
+client2.connect("10.219.17.163", 1883, 60)  # Replace 'ip_of_device_1' with the actual IP address of Device 1
+client2.loop_forever()
 
-        # Wait a short delay to debounce buttons
-        time.sleep(0.1)
-
-except KeyboardInterrupt:
-    # Clean up GPIO on Ctrl+C exit
-    GPIO.cleanup()
+# Example of publishing a message
+client2.publish("topic/test", "Hello from Device 2!")
+print ("this is running")
