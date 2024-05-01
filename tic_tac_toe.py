@@ -2,10 +2,20 @@ import pygame
 import os
 import RPi.GPIO as GPIO
 import random
+import paho.mqtt.client as mqtt
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 BLUE = (0,0,255)
+
+GAME_STATE_TOPIC = "game/state"
+GAME_WINNER_TOPIC = "game/winner"
+
+# Initialize MQTT client
+client = mqtt.Client()
+client.connect("localhost", 1883)
+client.subscribe(GAME_STATE_TOPIC)
+client.subscribe(GAME_WINNER_TOPIC)
 
 class TicTacToe:
     def __init__(self, screen):
@@ -34,6 +44,22 @@ class TicTacToe:
         # self.confetti_duration = 3000  # Duration in milliseconds
         # self.max_confetti_particles = 100
         # self.confetti_timer = 0
+        
+        
+    def on_message(self, client, userdata, message):
+        topic = message.topic
+        payload = message.payload.decode("utf-8")
+        if topic == GAME_STATE_TOPIC:
+            # Parse the payload and update the game state accordingly
+            moves = payload.split(",")
+            for move in moves:
+                if move:
+                    x, y, symbol = move.split(" ")
+                    self.grid[int(y)][int(x)] = symbol
+        elif topic == GAME_WINNER_TOPIC:
+            # Display the winner
+            print("Winner:", payload)
+
     def show_pause_popup(self):
         # Create a font object
         font = pygame.font.Font(None, 36)
@@ -239,11 +265,14 @@ class TicTacToe:
                                 if winner:
                                     print(f"Player {winner} wins!")
                                     self.winner = f"Player {winner} wins!"
+                                    client.publish(GAME_WINNER_TOPIC, self.winner)
                                 elif self.check_tie():
                                     print("It's a tie!")
                                     self.winner = "It's a tie!"
                                 else:
                                     self.current_player = 'O' if self.current_player == 'X' else 'X'
+                                    client.publish(GAME_STATE_TOPIC, ','.join(','.join(row) for row in self.grid))
+
                 if self.winner:
                     self.end_screen()        
                 if not self.paused:
@@ -256,7 +285,3 @@ class TicTacToe:
                     self.screen.blit(text, (10, 300))
                     pygame.display.flip()
                 
-# os.putenv('SDL_VIDEODRIVER', 'fbcon')
-# os.putenv('SDL_FBDEV', '/dev/fb1')
-# os.putenv('SDL_MOUSEDRV', 'TSLIB')
-# os.putenv('SDL_MOUSEDEV', '/dev/input/touchself.screen')
