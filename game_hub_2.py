@@ -1,5 +1,5 @@
 import pygame
-from tic_tac_toe import TicTacToe
+from tic_tac_toe_2 import TicTacToe
 from type_racer import Type_Racer
 # Initialize Pygame
 pygame.init()

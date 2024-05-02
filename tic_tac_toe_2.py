@@ -14,7 +14,7 @@ GAME_WINNER_TOPIC = "game/winner"
 
 # Initialize MQTT client
 client = mqtt.Client()
-client.connect("localhost", 1883) #change the broker address to the ip address of the server device
+client.connect("HOST", 1883) #change the broker address to the ip address of the server device
 client.subscribe(GAME_STATE_TOPIC)
 client.subscribe(GAME_WINNER_TOPIC)
 
@@ -40,11 +40,11 @@ class TicTacToe:
         self.winner = None
         self.clock = pygame.time.Clock()
         # Variable to track current player
-        self.current_player = 'X'
+        self.current_player = 'O'
         self.confetti_particles = []
         self.button_rects = []
-        self.disabled = False
-        self.player = "X"
+        self.disabled = True
+        self.player = "O"
         client.on_message = self.on_message
         client.loop_start()
 
