@@ -14,11 +14,7 @@ GAME_WINNER_TOPIC = "game/winner"
 
 # Initialize MQTT client
 client = mqtt.Client()
-<<<<<<< HEAD
-client.connect("localhost", 1883)
-=======
 client.connect("localhost", 1883) #change the broker address to the ip address of the server device
->>>>>>> 660895f72610941269d3b1356502e3a4ca6f4ea0
 client.subscribe(GAME_STATE_TOPIC)
 client.subscribe(GAME_WINNER_TOPIC)
 
@@ -47,16 +43,8 @@ class TicTacToe:
         self.current_player = 'X'
         self.confetti_particles = []
         self.button_rects = []
-<<<<<<< HEAD
-        self.disabled = False
-        # self.confetti_duration = 3000  # Duration in milliseconds
-        # self.max_confetti_particles = 100
-        # self.confetti_timer = 0
-        self.player = "X"
-=======
         self.disabled = True
         self.player = "O"
->>>>>>> 660895f72610941269d3b1356502e3a4ca6f4ea0
         client.on_message = self.on_message
         client.loop_start()
 
