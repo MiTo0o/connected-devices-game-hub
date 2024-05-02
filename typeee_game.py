@@ -1,10 +1,23 @@
 import pygame
 import random
 import time
+import pigpio
 
 # Initialize Pygame
 pygame.init()
 
+
+pi1 = pigpio.pi()
+RED_PIN = 19
+BLUE_PIN = 13
+GREEN_PIN = 26
+pi1.set_mode(RED_PIN, pigpio.OUTPUT)
+pi1.set_mode(BLUE_PIN, pigpio.OUTPUT)
+pi1.set_mode(GREEN_PIN, pigpio.OUTPUT)
+
+pi1.write(RED_PIN, 0)
+pi1.write(BLUE_PIN, 0)
+pi1.write(GREEN_PIN, 0)
 # Set up the display
 screen_width = 240
 screen_height = 320
@@ -47,8 +60,8 @@ keys = [
     "ASDFGHJKP",   # Same here, 9 keys
     "ZXCVBNML",
     " -",
-
 ]
+
 key_sizes = {
     'BKSPC': (screen_width // 5, 40),  # Backspace key size
     'SPACE': (3 * screen_width // 5, 40)  # Space key size, making it larger
@@ -151,9 +164,15 @@ while running:
         displayed_sentence = current_sentence
 
     render_text(screen, displayed_sentence, font, 10, 7, black)
-
+    correct = current_sentence.startswith(input_text)
     # Render the user input
-    render_text(screen, input_text, font, 10, 45, green if current_sentence.startswith(input_text) else red)
+    render_text(screen, input_text, font, 10, 45, green if correct else red)
+    if correct:
+        pi1.write(RED_PIN, 0)
+        pi1.write(GREEN_PIN, 1)
+    else:
+        pi1.write(GREEN_PIN, 0)
+        pi1.write(RED_PIN, 1)
 
     # Render the timer
     render_text(screen, f"Time left: {int(time_limit - time_elapsed)}", font, 10, 85, black)
