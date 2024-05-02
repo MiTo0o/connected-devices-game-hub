@@ -15,11 +15,10 @@ GAME_WINNER_TOPIC = "game/winner"
 
 # Initialize MQTT client
 client = mqtt.Client()
-#client.connect("10.219.17.163", 1883) #change the broker address to the ip address of the server device
-client.connect("localhost", 1883)
+client.connect("10.219.17.163", 1883) #change the broker address to the ip address of the server device
+#client.connect("localhost", 1883)
 client.subscribe(GAME_STATE_TOPIC)
 client.subscribe(GAME_WINNER_TOPIC)
-
 
 class TicTacToe:
     def __init__(self, screen):
@@ -258,7 +257,6 @@ class TicTacToe:
         while self.running:
             # Handle events
             if GPIO.input(self.QUIT_BUTTON) == GPIO.LOW:
-                print('xdd')
                 self.show_pause_popup()
             else:
                 for event in pygame.event.get():
