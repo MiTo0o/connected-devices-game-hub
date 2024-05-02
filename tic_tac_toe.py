@@ -85,7 +85,6 @@ class TicTacToe:
             self.ramp_color(26, 0, 100, 1, 0.01)  
             self.ramp_color(26, 100, 0, -1, 0.01) 
         
-
     def show_pause_popup(self):
         # Create a font object
         font = pygame.font.Font(None, 36)
@@ -135,7 +134,6 @@ class TicTacToe:
         if self.grid[0][2] == self.grid[1][1] == self.grid[2][0] != '':
             return self.grid[0][2]
         return None
-
 
     # Function to check for a tie
     def check_tie(self):
@@ -230,7 +228,6 @@ class TicTacToe:
             particle['y'] += 2  # Move particle downwards
             if particle['y'] > self.SCREEN_HEIGHT:  # Remove particles that fall off the screen
                 self.confetti_particles.remove(particle)
-
 
     def end_screen(self):
         local_running = True
