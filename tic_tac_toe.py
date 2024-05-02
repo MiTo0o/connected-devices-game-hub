@@ -1,11 +1,24 @@
 import pygame
-import os
+import json
+import time
+import pigpio
 import RPi.GPIO as GPIO
 import random
+import paho.mqtt.client as mqtt
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 BLUE = (0,0,255)
+
+GAME_STATE_TOPIC = "game/state"
+GAME_WINNER_TOPIC = "game/winner"
+
+# Initialize MQTT client
+client = mqtt.Client()
+client.connect("10.219.17.163", 1883) #change the broker address to the ip address of the server device
+#client.connect("localhost", 1883)
+client.subscribe(GAME_STATE_TOPIC)
+client.subscribe(GAME_WINNER_TOPIC)
 
 class TicTacToe:
     def __init__(self, screen):
@@ -28,24 +41,58 @@ class TicTacToe:
         self.winner = None
         self.clock = pygame.time.Clock()
         # Variable to track current player
-        self.current_player = 'X'
+        self.current_player = 'O'
         self.confetti_particles = []
         self.button_rects = []
-        # self.confetti_duration = 3000  # Duration in milliseconds
-        # self.max_confetti_particles = 100
-        # self.confetti_timer = 0
+        self.disabled = True
+        self.player = "O"
+        client.on_message = self.on_message
+        client.loop_start()
+
+        self.pi1 = pigpio.pi()
+        self.RED_PIN = 19
+        self.BLUE_PIN = 13
+        self.GREEN_PIN = 26
+        self.pi1.set_mode(self.RED_PIN, pigpio.OUTPUT)
+        self.pi1.set_mode(self.BLUE_PIN, pigpio.OUTPUT)
+        self.pi1.set_mode(self.GREEN_PIN, pigpio.OUTPUT)
+
+
+    def ramp_color(self, color_pin, start, end, steps, delay):
+        stop = end + steps  # ensure loop includes the end value
+        for i in range(start, stop, steps):
+            self.pi1.set_PWM_dutycycle(color_pin, i)
+            time.sleep(delay)
+
+    def on_message(self, client, userdata, message):
+        topic = message.topic
+        payload = message.payload.decode("utf-8")
+        print(payload)
+        if topic == GAME_STATE_TOPIC:
+            new_info = json.loads(payload)
+            self.grid = new_info["grid"] 
+            if new_info["player"] == self.player:
+               self.disabled = True
+               self.pi1.write(self.RED_PIN, 0)
+               self.pi1.write(self.BLUE_PIN, 1)
+            else:
+               self.disabled = False
+               self.pi1.write(self.RED_PIN, 1)
+               self.pi1.write(self.BLUE_PIN, 0)
+        elif topic == GAME_WINNER_TOPIC:
+            print("Winner:", payload)
+            self.ramp_color(26, 0, 100, 1, 0.01)  
+            self.ramp_color(26, 100, 0, -1, 0.01) 
+        
     def show_pause_popup(self):
         # Create a font object
         font = pygame.font.Font(None, 36)
-        
         # Render the pause message
         text = font.render("Game Paused", True, RED)
-        text_rect = text.get_rect(center=(self.SCREEN_WIDTH // 2, self.SCREEN_HEIGHT // 2 - 50))
-        
+        text_rect = text.get_rect(center=(self.SCREEN_WIDTH // 2, self.SCREEN_HEIGHT // 2 - 50))    
         # Render the quit button
         quit_button_text = font.render("Quit", True, RED)
-        quit_button_rect = quit_button_text.get_rect(center=(self.SCREEN_WIDTH // 2, self.SCREEN_HEIGHT // 2 + 50))
-        
+        quit_button_rect = quit_button_text.get_rect(center=(self.SCREEN_WIDTH // 2, self.SCREEN_HEIGHT // 2 + 50)) 
         # Main loop for the pop-up window
         self.paused = True
         while self.paused:
@@ -65,14 +112,11 @@ class TicTacToe:
             if GPIO.input(self.QUIT_BUTTON) == GPIO.HIGH:
                 self.paused = False
             # Fill the self.screen with black background
-            self.screen.fill(BLACK)
-            
+            self.screen.fill(BLACK)        
             # Draw the pause message onto the self.screen
-            self.screen.blit(text, text_rect)
-            
+            self.screen.blit(text, text_rect)          
             # Draw the quit button
-            self.screen.blit(quit_button_text, quit_button_rect)
-            
+            self.screen.blit(quit_button_text, quit_button_rect)          
             # Update the display
             pygame.display.flip()
 
@@ -133,12 +177,6 @@ class TicTacToe:
         return {'x': x, 'y': y, 'size': size, 'color': color}
 
     def end_pop_up(self):
-        # current_time = pygame.time.get_ticks()
-        # if current_time - self.confetti_timer < self.confetti_duration and len(self.confetti_particles) < self.max_confetti_particles:
-        #     self.update_confetti()  # Update confetti animation
-        # elif current_time - self.confetti_timer >= self.confetti_duration:
-        #     self.confetti_particles.clear()  # Clear confetti particles if duration is reached
-        
         self.screen.fill(WHITE)
         self.draw_grid()
         font = pygame.font.SysFont(None, 30)
@@ -167,6 +205,7 @@ class TicTacToe:
         self.screen.blit(button_text, button_rect)
         if button_rect not in self.button_rects:
             self.button_rects.append(button_rect)
+
         # Button to start another game
         button_text = font.render("Start New Game", True, (255, 255, 255))
         button_rect = button_text.get_rect(center=(self.SCREEN_WIDTH // 2, rect_y + rect_height + 70))
@@ -174,6 +213,7 @@ class TicTacToe:
         self.screen.blit(button_text, button_rect)
         if button_rect not in self.button_rects:
             self.button_rects.append(button_rect)
+            
         # Update the display
         self.update_confetti()  
         pygame.display.flip()
@@ -187,7 +227,6 @@ class TicTacToe:
             particle['y'] += 2  # Move particle downwards
             if particle['y'] > self.SCREEN_HEIGHT:  # Remove particles that fall off the screen
                 self.confetti_particles.remove(particle)
-
 
     def end_screen(self):
         local_running = True
@@ -206,7 +245,7 @@ class TicTacToe:
                                 return
                             elif button_rect == self.button_rects[1]:
                                 print("Start new game button pressed")
-                                self.current_player = 'X'
+
                                 self.confetti_particles = []
                                 self.button_rects = []
                                 self.grid = [['' for _ in range(3)] for _ in range(3)]
@@ -218,7 +257,6 @@ class TicTacToe:
         while self.running:
             # Handle events
             if GPIO.input(self.QUIT_BUTTON) == GPIO.LOW:
-                print('xdd')
                 self.show_pause_popup()
             else:
                 for event in pygame.event.get():
@@ -226,24 +264,31 @@ class TicTacToe:
                         self.running = False
                     elif event.type == pygame.FINGERDOWN:
                         # Get touch position from the event
-                        touch_x = event.x * self.screen.get_width()
-                        touch_y = event.y * self.screen.get_height()
-                        # Map touch position to game self.grid
-                        cell_x = int(touch_x) // (self.CELL_SIZE + self.CELL_PADDING)
-                        cell_y = int(touch_y) // (self.CELL_SIZE + self.CELL_PADDING)
-                        # Check if the cell is empty and it's the current player's turn
-                        if 0 <= cell_x < 3 and 0 <= cell_y < 3:
-                            if self.grid[cell_y][cell_x] == '' and (self.current_player == 'X' or self.current_player == 'O'):
-                                self.grid[cell_y][cell_x] = self.current_player
-                                winner = self.check_winner()
-                                if winner:
-                                    print(f"Player {winner} wins!")
-                                    self.winner = f"Player {winner} wins!"
-                                elif self.check_tie():
-                                    print("It's a tie!")
-                                    self.winner = "It's a tie!"
-                                else:
-                                    self.current_player = 'O' if self.current_player == 'X' else 'X'
+                        if self.disabled == False:
+                            touch_x = event.x * self.screen.get_width()
+                            touch_y = event.y * self.screen.get_height()
+                            # Map touch position to game self.grid
+                            cell_x = int(touch_x) // (self.CELL_SIZE + self.CELL_PADDING)
+                            cell_y = int(touch_y) // (self.CELL_SIZE + self.CELL_PADDING)
+                            # Check if the cell is empty and it's the current player's turn
+                            if 0 <= cell_x < 3 and 0 <= cell_y < 3:
+                                if self.grid[cell_y][cell_x] == '' and (self.current_player == 'X' or self.current_player == 'O'):
+                                    self.grid[cell_y][cell_x] = self.current_player
+                                    winner = self.check_winner()
+                                    if winner:
+                                        print(f"Player {winner} wins!")
+                                        self.winner = f"Player {winner} wins!"
+                                        client.publish(GAME_WINNER_TOPIC, self.winner)
+                                    elif self.check_tie():
+                                        print("It's a tie!")
+                                        self.winner = "It's a tie!"
+                                    else:
+                                        info = {
+                                            "grid": self.grid,
+                                            "player": self.player
+                                        }
+                                        client.publish(GAME_STATE_TOPIC, json.dumps(info))
+
                 if self.winner:
                     self.end_screen()        
                 if not self.paused:
@@ -254,9 +299,4 @@ class TicTacToe:
                     font = pygame.font.SysFont(None, 30)
                     text = font.render("Turn: " + self.current_player, True, BLACK)
                     self.screen.blit(text, (10, 300))
-                    pygame.display.flip()
-                
-# os.putenv('SDL_VIDEODRIVER', 'fbcon')
-# os.putenv('SDL_FBDEV', '/dev/fb1')
-# os.putenv('SDL_MOUSEDRV', 'TSLIB')
-# os.putenv('SDL_MOUSEDEV', '/dev/input/touchself.screen')
+                    pygame.display.flip()                

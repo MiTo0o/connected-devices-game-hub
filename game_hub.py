@@ -1,5 +1,6 @@
 import pygame
 from tic_tac_toe import TicTacToe
+from simon_says import SimonSays
 
 # Initialize Pygame
 pygame.init()
@@ -17,14 +18,14 @@ icon_size = 90
 tic_tac_toe = pygame.image.load("ttt_logo.png")
 connect_4 = pygame.image.load("connect_4_logo.png")
 battleship = pygame.image.load("battleship_logo.png")
-simon = pygame.image.load("simon_logo.png")
+simon_says = pygame.image.load("simon_logo.png")
 # Load more game icons as needed...
 
 # Resize game icons to 60x60 pixels
 tic_tac_toe = pygame.transform.scale(tic_tac_toe, (90, 90))
 connect_4 = pygame.transform.scale(connect_4, (90, 90))
 battleship = pygame.transform.scale(battleship, (90, 90))
-simon = pygame.transform.scale(simon, (90, 90))
+simon_says = pygame.transform.scale(simon_says, (90, 90))
 # Resize more game icons as needed...
 
 # Set icon positions
@@ -64,6 +65,8 @@ while running:
                 pass
             elif simon_rect.collidepoint(x,y):
                 print('simon')
+                simon = SimonSays(screen)  # Pass the screen surface
+                simon.run_game()
                 pass
 
     # Clear the screen
@@ -80,7 +83,7 @@ while running:
     screen.blit(tic_tac_toe, (icon_x, icon_y))
     screen.blit(connect_4, (icon_x, icon_y + 90 + icon_spacing))
     screen.blit(battleship, (icon_x + 90 + icon_spacing, icon_y))
-    screen.blit(simon, (icon_x + 90 + icon_spacing, icon_y + 90 + icon_spacing))
+    screen.blit(simon_says, (icon_x + 90 + icon_spacing, icon_y + 90 + icon_spacing))
 
     # Blit more game icons as needed...
 
