@@ -150,16 +150,16 @@ while running:
     else:
         displayed_sentence = current_sentence
 
-    render_text(screen, displayed_sentence, font, 10, 10, black)
+    render_text(screen, displayed_sentence, font, 10, 7, black)
 
     # Render the user input
     render_text(screen, input_text, font, 10, 45, green if current_sentence.startswith(input_text) else red)
 
     # Render the timer
-    render_text(screen, f"Time left: {int(time_limit - time_elapsed)}", font, 10, 75, black)
+    render_text(screen, f"Time left: {int(time_limit - time_elapsed)}", font, 10, 85, black)
 
     # Render the score
-    render_text(screen, f"Score: {score}", large_font, 10, 100, black)
+    render_text(screen, f"Score: {score}", large_font, 10, 110, black)
 
     # Draw the keyboard
     draw_keyboard(screen, keys, key_margin)
