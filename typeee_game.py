@@ -3,187 +3,181 @@ import random
 import time
 import pigpio
 
-# Initialize Pygame
-pygame.init()
+class type_racer:
+    def __init__(self):
+        pygame.init()
 
+        self.pi1 = pigpio.pi()
+        self.RED_PIN = 19
+        self.BLUE_PIN = 13
+        self.GREEN_PIN = 26
+        self.pi1.set_mode(self.RED_PIN, pigpio.OUTPUT)
+        self.pi1.set_mode(self.BLUE_PIN, pigpio.OUTPUT)
+        self.pi1.set_mode(self.GREEN_PIN, pigpio.OUTPUT)
 
-pi1 = pigpio.pi()
-RED_PIN = 19
-BLUE_PIN = 13
-GREEN_PIN = 26
-pi1.set_mode(RED_PIN, pigpio.OUTPUT)
-pi1.set_mode(BLUE_PIN, pigpio.OUTPUT)
-pi1.set_mode(GREEN_PIN, pigpio.OUTPUT)
+        self.pi1.write(self.RED_PIN, 0)
+        self.pi1.write(self.BLUE_PIN, 0)
+        self.pi1.write(self.GREEN_PIN, 0)
+        # Set up the display
+        self.screen_width = 240
+        self.screen_height = 320
+        self.screen = pygame.display.set_mode((self.screen_width, self.screen_height), pygame.FULLSCREEN)
 
-pi1.write(RED_PIN, 0)
-pi1.write(BLUE_PIN, 0)
-pi1.write(GREEN_PIN, 0)
-# Set up the display
-screen_width = 240
-screen_height = 320
-screen = pygame.display.set_mode((screen_width, screen_height), pygame.FULLSCREEN)
+        # Set colors
+        self.black = (0, 0, 0)
+        self.white = (255, 255, 255)
+        self.gray = (200, 200, 200)
+        self.green = (0, 255, 0)
+        self.red = (255, 0, 0)
+        self.light_gray = (230, 230, 230)
 
-# Set colors
-black = (0, 0, 0)
-white = (255, 255, 255)
-gray = (200, 200, 200)
-green = (0, 255, 0)
-red = (255, 0, 0)
-light_gray = (230, 230, 230)
+        # Set fonts
+        self.font = pygame.font.Font(None, 24)
+        self.large_font = pygame.font.Font(None, 40)
 
-# Set fonts
-font = pygame.font.Font(None, 24)
-large_font = pygame.font.Font(None, 40)
+        # Game variables
+        self.running = True
+        self.clock = pygame.time.Clock()
+        self.input_text = ''
+        self.start_time = 0
+        self.time_limit = 50
+        self.score = 0
+        self.active = False
 
-# Game variables
-running = True
-clock = pygame.time.Clock()
-input_text = ''
-start_time = 0
-time_limit = 80
-score = 0
-active = False
+        self.sentences = [
+            "hello world this is a try to type this sentence",
+            "try to type this sentence try to type this sentence",
+        ]
+        self.current_sentence = random.choice(self.sentences)
+        
+        self.keys = [
+            "QWERTYUIO",  # Ensures 'P' is on the screen by limiting keys per row to 10
+            "ASDFGHJKP",   # Same here, 9 keys
+            "ZXCVBNML",
+            " -",
+        ]
 
-# Sample sentences
-sentences = [
-    "hello world this is a try to type this sentence",
-    "try to type this sentence try to type this sentence",
-    "the quick brown fox jumps try to type this sentence",
-    "pygame is fun for building try to type this sentence",
-    "accuracy over speed is often try to type this sentence"
-]
-current_sentence = random.choice(sentences)
+        self.key_sizes = {
+            'BKSPC': (self.screen_width // 5, 40),  # Backspace key size
+            'SPACE': (3 * self.screen_width // 5, 40)  # Space key size, making it larger
+        }
+        self.key_margin = 5
 
-# Keyboard setup
-keys = [
-    "QWERTYUIO",  # Ensures 'P' is on the screen by limiting keys per row to 10
-    "ASDFGHJKP",   # Same here, 9 keys
-    "ZXCVBNML",
-    " -",
-]
+    def draw_key(self, screen, key, position, key_size):
+        x, y = position
+        w, h = key_size
+        pygame.draw.rect(self.screen, self.gray, (x, y, w, h))
+        label = '-' if key == '-' else ' ' if key == ' ' else key
+        text_obj = self.font.render(label, True, self.black)
+        text_rect = text_obj.get_rect(center=(x + w / 2, y + h / 2))
+        screen.blit(text_obj, text_rect)
 
-key_sizes = {
-    'BKSPC': (screen_width // 5, 40),  # Backspace key size
-    'SPACE': (3 * screen_width // 5, 40)  # Space key size, making it larger
-}
-key_margin = 5
+    def draw_keyboard(self, screen, keys, key_margin):
+        key_height = 40
+        start_y = self.screen_height - (len(self.keys) * (key_height + key_margin) - key_margin)
+        for j, row in enumerate(keys):
+            start_x = (self.screen_width - (len(row) * (self.screen_width // 10 + key_margin) - key_margin)) // 2
+            for i, key in enumerate(row):
+                self.key_size = (self.screen_width // 10, key_height) if key not in self.key_sizes else self.key_sizes[key]
+                self.draw_key(self.screen, key, (start_x + i * (self.screen_width // 10 + key_margin), start_y + j * (key_height + key_margin)), self.key_size)
 
-def draw_key(screen, key, position, key_size):
-    x, y = position
-    w, h = key_size
-    pygame.draw.rect(screen, gray, (x, y, w, h))
-    label = '-' if key == '-' else ' ' if key == ' ' else key
-    text_obj = font.render(label, True, black)
-    text_rect = text_obj.get_rect(center=(x + w / 2, y + h / 2))
-    screen.blit(text_obj, text_rect)
+    def check_key_press(self, x, y, keys, key_margin):
+        key_height = 40
+        start_y = self.screen_height - (len(keys) * (key_height + key_margin) - key_margin)
+        for j, row in enumerate(keys):
+            start_x = (self.screen_width - (len(row) * (self.screen_width // 10 + key_margin) - key_margin)) // 2
+            for i, key in enumerate(row):
+                self.key_size = (self.screen_width // 10, key_height) if key not in self.key_sizes else key_sizes[key]
+                key_x, key_y = start_x + i * (self.screen_width // 10 + key_margin), start_y + j * (key_height + key_margin)
+                if key_x <= x < key_x + self.key_size[0] and key_y <= y < key_y + self.key_size[1]:
+                    # print(key)
+                    return key
+        return None
 
-def draw_keyboard(screen, keys, key_margin):
-    key_height = 40
-    start_y = screen_height - (len(keys) * (key_height + key_margin) - key_margin)
-    for j, row in enumerate(keys):
-        start_x = (screen_width - (len(row) * (screen_width // 10 + key_margin) - key_margin)) // 2
-        for i, key in enumerate(row):
-            key_size = (screen_width // 10, key_height) if key not in key_sizes else key_sizes[key]
-            draw_key(screen, key, (start_x + i * (screen_width // 10 + key_margin), start_y + j * (key_height + key_margin)), key_size)
+    def render_text(self, screen, text, font, x, y, color):
+        """Render text on the screen at specified position and color, adjusting for two lines if needed."""
+        screen_width = self.screen.get_width()
+        words = text.split()
+        line1 = ''
+        line2 = ''
+        current_length = 0
 
-def check_key_press(x, y, keys, key_margin):
-    key_height = 40
-    start_y = screen_height - (len(keys) * (key_height + key_margin) - key_margin)
-    for j, row in enumerate(keys):
-        start_x = (screen_width - (len(row) * (screen_width // 10 + key_margin) - key_margin)) // 2
-        for i, key in enumerate(row):
-            key_size = (screen_width // 10, key_height) if key not in key_sizes else key_sizes[key]
-            key_x, key_y = start_x + i * (screen_width // 10 + key_margin), start_y + j * (key_height + key_margin)
-            if key_x <= x < key_x + key_size[0] and key_y <= y < key_y + key_size[1]:
-                # print(key)
-                return key
-    return None
+        # Try to fit words into two lines
+        for word in words:
+            word_length = font.size(word + ' ')[0]
+            if current_length + word_length < screen_width:
+                line1 += word + ' '
+                current_length += word_length
+            else:
+                line2 += word + ' '
 
-def render_text(screen, text, font, x, y, color):
-    """Render text on the screen at specified position and color, adjusting for two lines if needed."""
-    screen_width = screen.get_width()
-    words = text.split()
-    line1 = ''
-    line2 = ''
-    current_length = 0
+        # Render the lines
+        text_obj = self.font.render(line1.strip(), True, color)
+        screen.blit(text_obj, (x, y))
+        if line2:  # Only render the second line if there's text to display
+            text_obj = self.font.render(line2.strip(), True, color)
+            self.screen.blit(text_obj, (x, y + font.get_height()))
+    def run(self):
+        # Main game loop
+        while self.running:
+            self.screen.fill(self.white)
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                elif event.type == pygame.FINGERDOWN:
+                    # Convert from normalized to absolute coordinates
+                    abs_x, abs_y = int(event.x * self.screen_width), int(event.y * self.screen_height)
+                    key_pressed = self.check_key_press(abs_x, abs_y, self.keys, self.key_margin)
+                    if key_pressed:
+                        if key_pressed == '-':
+                            self.input_text = self.input_text[:-1]
+                        elif key_pressed == ' ':
+                            self.input_text += ' '
+                        else:
+                            self.input_text += key_pressed.lower()
+                        self.start_time = self.start_time or time.time()
 
-    # Try to fit words into two lines
-    for word in words:
-        word_length = font.size(word + ' ')[0]
-        if current_length + word_length < screen_width:
-            line1 += word + ' '
-            current_length += word_length
-        else:
-            line2 += word + ' '
+            # Time management
+            self.time_elapsed = time.time() - self.start_time if self.start_time else 0
+            if self.time_elapsed > self.time_limit:
+                self.active = False
+                self.score += sum(1 for word in self.input_text.split() if word in self.current_sentence.split())
+                self.current_sentence = random.choice(self.sentences)
+                self.input_text = ''
+                self.start_time = 0
 
-    # Render the lines
-    text_obj = font.render(line1.strip(), True, color)
-    screen.blit(text_obj, (x, y))
-    if line2:  # Only render the second line if there's text to display
-        text_obj = font.render(line2.strip(), True, color)
-        screen.blit(text_obj, (x, y + font.get_height()))
-# def render_text(screen, text, font, x, y, color):
-#     """Render text on the screen at specified position and color."""
-#     text_obj = font.render(text, True, color)
-#     screen.blit(text_obj, (x, y))
+            # Render the current sentence
+            if len(self.current_sentence) * self.font.size(' ')[0] > self.screen_width:
+                # Scroll the sentence if it's too long to fit
+                start_index = max(0, len(self.input_text) - 10)
+                displayed_sentence = self.current_sentence[start_index:start_index + 20]
+            else:
+                displayed_sentence = self.current_sentence
 
-# Main game loop
-while running:
-    screen.fill(white)
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        elif event.type == pygame.FINGERDOWN:
-            # Convert from normalized to absolute coordinates
-            abs_x, abs_y = int(event.x * screen_width), int(event.y * screen_height)
-            key_pressed = check_key_press(abs_x, abs_y, keys, key_margin)
-            if key_pressed:
-                if key_pressed == '-':
-                    input_text = input_text[:-1]
-                elif key_pressed == ' ':
-                    input_text += ' '
-                else:
-                    input_text += key_pressed.lower()
-                start_time = start_time or time.time()
+            self.render_text(self.screen, displayed_sentence, self.font, 10, 7, self.black)
+            correct = self.current_sentence.startswith(self.input_text)
+            # Render the user input
+            self.render_text(self.screen, self.input_text, self.font, 10, 45, self.green if correct else self.red)
+            if correct:
+                self.pi1.write(self.RED_PIN, 0)
+                self.pi1.write(self.GREEN_PIN, 1)
+            else:
+                self.pi1.write(self.GREEN_PIN, 0)
+                self.pi1.write(self.RED_PIN, 1)
 
-    # Time management
-    time_elapsed = time.time() - start_time if start_time else 0
-    if time_elapsed > time_limit:
-        active = False
-        score += sum(1 for word in input_text.split() if word in current_sentence.split())
-        current_sentence = random.choice(sentences)
-        input_text = ''
-        start_time = 0
+            # Render the timer
+            self.render_text(self.screen, f"Time left: {int(self.time_limit - self.time_elapsed)}", self.font, 10, 85, self.black)
 
-    # Render the current sentence
-    if len(current_sentence) * font.size(' ')[0] > screen_width:
-        # Scroll the sentence if it's too long to fit
-        start_index = max(0, len(input_text) - 10)
-        displayed_sentence = current_sentence[start_index:start_index + 20]
-    else:
-        displayed_sentence = current_sentence
+            # Render the score
+            self.render_text(self.screen, f"Score: {self.score}", self.large_font, 10, 110, self.black)
 
-    render_text(screen, displayed_sentence, font, 10, 7, black)
-    correct = current_sentence.startswith(input_text)
-    # Render the user input
-    render_text(screen, input_text, font, 10, 45, green if correct else red)
-    if correct:
-        pi1.write(RED_PIN, 0)
-        pi1.write(GREEN_PIN, 1)
-    else:
-        pi1.write(GREEN_PIN, 0)
-        pi1.write(RED_PIN, 1)
+            # Draw the keyboard
+            self.draw_keyboard(self.screen, self.keys, self.key_margin)
 
-    # Render the timer
-    render_text(screen, f"Time left: {int(time_limit - time_elapsed)}", font, 10, 85, black)
+            pygame.display.flip()
+            self.clock.tick(30)
 
-    # Render the score
-    render_text(screen, f"Score: {score}", large_font, 10, 110, black)
+        pygame.quit()
 
-    # Draw the keyboard
-    draw_keyboard(screen, keys, key_margin)
-
-    pygame.display.flip()
-    clock.tick(30)
-
-pygame.quit()
+xd = type_racer()
+xd.run()
