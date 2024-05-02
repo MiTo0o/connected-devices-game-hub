@@ -1,5 +1,6 @@
 import pygame
 import json
+import time
 import pigpio
 import RPi.GPIO as GPIO
 import random
@@ -14,10 +15,10 @@ GAME_WINNER_TOPIC = "game/winner"
 
 # Initialize MQTT client
 client = mqtt.Client()
-client.connect("localhost", 1883) #change the broker address to the ip address of the server device
+client.connect("10.219.17.163", 1883) #change the broker address to the ip address of the server device
+#client.connect("localhost", 1883)
 client.subscribe(GAME_STATE_TOPIC)
 client.subscribe(GAME_WINNER_TOPIC)
-
 
 class TicTacToe:
     def __init__(self, screen):
@@ -51,9 +52,17 @@ class TicTacToe:
         self.pi1 = pigpio.pi()
         self.RED_PIN = 19
         self.BLUE_PIN = 13
+        self.GREEN_PIN = 26
         self.pi1.set_mode(self.RED_PIN, pigpio.OUTPUT)
         self.pi1.set_mode(self.BLUE_PIN, pigpio.OUTPUT)
+        self.pi1.set_mode(self.GREEN_PIN, pigpio.OUTPUT)
 
+
+    def ramp_color(self, color_pin, start, end, steps, delay):
+        stop = end + steps  # ensure loop includes the end value
+        for i in range(start, stop, steps):
+            self.pi1.set_PWM_dutycycle(color_pin, i)
+            time.sleep(delay)
 
     def on_message(self, client, userdata, message):
         topic = message.topic
@@ -64,20 +73,17 @@ class TicTacToe:
             self.grid = new_info["grid"] 
             if new_info["player"] == self.player:
                self.disabled = True
+               self.pi1.write(self.RED_PIN, 0)
+               self.pi1.write(self.BLUE_PIN, 1)
             else:
                self.disabled = False
+               self.pi1.write(self.RED_PIN, 1)
+               self.pi1.write(self.BLUE_PIN, 0)
         elif topic == GAME_WINNER_TOPIC:
-            # Display the winner
             print("Winner:", payload)
-
-    def switch_light_color(self):
-        if self.current_player == 'X':
-            self.pi1.write(self.RED_PIN, 0)
-            self.pi1.write(self.BLUE_PIN, 1)
-        else:
-            self.pi1.write(self.RED_PIN, 1)
-            self.pi1.write(self.BLUE_PIN, 0)
-
+            self.ramp_color(26, 0, 100, 1, 0.01)  
+            self.ramp_color(26, 100, 0, -1, 0.01) 
+        
     def show_pause_popup(self):
         # Create a font object
         font = pygame.font.Font(None, 36)
@@ -222,7 +228,6 @@ class TicTacToe:
             if particle['y'] > self.SCREEN_HEIGHT:  # Remove particles that fall off the screen
                 self.confetti_particles.remove(particle)
 
-
     def end_screen(self):
         local_running = True
         while local_running:
@@ -252,7 +257,6 @@ class TicTacToe:
         while self.running:
             # Handle events
             if GPIO.input(self.QUIT_BUTTON) == GPIO.LOW:
-                print('xdd')
                 self.show_pause_popup()
             else:
                 for event in pygame.event.get():
@@ -284,7 +288,6 @@ class TicTacToe:
                                             "player": self.player
                                         }
                                         client.publish(GAME_STATE_TOPIC, json.dumps(info))
-                                        self.switch_light_color()
 
                 if self.winner:
                     self.end_screen()        
@@ -296,9 +299,4 @@ class TicTacToe:
                     font = pygame.font.SysFont(None, 30)
                     text = font.render("Turn: " + self.current_player, True, BLACK)
                     self.screen.blit(text, (10, 300))
-                    pygame.display.flip()
-
-    
-                
-
-                
+                    pygame.display.flip()                
