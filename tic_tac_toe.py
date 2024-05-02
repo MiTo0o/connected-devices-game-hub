@@ -1,6 +1,6 @@
 import pygame
-import os
 import json
+import pigpio
 import RPi.GPIO as GPIO
 import random
 import paho.mqtt.client as mqtt
@@ -14,7 +14,7 @@ GAME_WINNER_TOPIC = "game/winner"
 
 # Initialize MQTT client
 client = mqtt.Client()
-client.connect("10.219.17.163", 1883)
+client.connect("localhost", 1883) #change the broker address to the ip address of the server device
 client.subscribe(GAME_STATE_TOPIC)
 client.subscribe(GAME_WINNER_TOPIC)
 
@@ -44,14 +44,17 @@ class TicTacToe:
         self.confetti_particles = []
         self.button_rects = []
         self.disabled = True
-        # self.confetti_duration = 3000  # Duration in milliseconds
-        # self.max_confetti_particles = 100
-        # self.confetti_timer = 0
         self.player = "O"
         client.on_message = self.on_message
         client.loop_start()
 
-    
+        self.pi1 = pigpio.pi()
+        self.RED_PIN = 19
+        self.BLUE_PIN = 13
+        self.pi1.set_mode(self.RED_PIN, pigpio.OUTPUT)
+        self.pi1.set_mode(self.BLUE_PIN, pigpio.OUTPUT)
+
+
     def on_message(self, client, userdata, message):
         topic = message.topic
         payload = message.payload.decode("utf-8")
@@ -67,18 +70,23 @@ class TicTacToe:
             # Display the winner
             print("Winner:", payload)
 
+    def switch_light_color(self):
+        if self.current_player == 'X':
+            self.pi1.write(self.RED_PIN, 0)
+            self.pi1.write(self.BLUE_PIN, 1)
+        else:
+            self.pi1.write(self.RED_PIN, 1)
+            self.pi1.write(self.BLUE_PIN, 0)
+
     def show_pause_popup(self):
         # Create a font object
         font = pygame.font.Font(None, 36)
-        
         # Render the pause message
         text = font.render("Game Paused", True, RED)
-        text_rect = text.get_rect(center=(self.SCREEN_WIDTH // 2, self.SCREEN_HEIGHT // 2 - 50))
-        
+        text_rect = text.get_rect(center=(self.SCREEN_WIDTH // 2, self.SCREEN_HEIGHT // 2 - 50))    
         # Render the quit button
         quit_button_text = font.render("Quit", True, RED)
-        quit_button_rect = quit_button_text.get_rect(center=(self.SCREEN_WIDTH // 2, self.SCREEN_HEIGHT // 2 + 50))
-        
+        quit_button_rect = quit_button_text.get_rect(center=(self.SCREEN_WIDTH // 2, self.SCREEN_HEIGHT // 2 + 50)) 
         # Main loop for the pop-up window
         self.paused = True
         while self.paused:
@@ -98,14 +106,11 @@ class TicTacToe:
             if GPIO.input(self.QUIT_BUTTON) == GPIO.HIGH:
                 self.paused = False
             # Fill the self.screen with black background
-            self.screen.fill(BLACK)
-            
+            self.screen.fill(BLACK)        
             # Draw the pause message onto the self.screen
-            self.screen.blit(text, text_rect)
-            
+            self.screen.blit(text, text_rect)          
             # Draw the quit button
-            self.screen.blit(quit_button_text, quit_button_rect)
-            
+            self.screen.blit(quit_button_text, quit_button_rect)          
             # Update the display
             pygame.display.flip()
 
@@ -166,12 +171,6 @@ class TicTacToe:
         return {'x': x, 'y': y, 'size': size, 'color': color}
 
     def end_pop_up(self):
-        # current_time = pygame.time.get_ticks()
-        # if current_time - self.confetti_timer < self.confetti_duration and len(self.confetti_particles) < self.max_confetti_particles:
-        #     self.update_confetti()  # Update confetti animation
-        # elif current_time - self.confetti_timer >= self.confetti_duration:
-        #     self.confetti_particles.clear()  # Clear confetti particles if duration is reached
-        
         self.screen.fill(WHITE)
         self.draw_grid()
         font = pygame.font.SysFont(None, 30)
@@ -200,6 +199,7 @@ class TicTacToe:
         self.screen.blit(button_text, button_rect)
         if button_rect not in self.button_rects:
             self.button_rects.append(button_rect)
+
         # Button to start another game
         button_text = font.render("Start New Game", True, (255, 255, 255))
         button_rect = button_text.get_rect(center=(self.SCREEN_WIDTH // 2, rect_y + rect_height + 70))
@@ -207,6 +207,7 @@ class TicTacToe:
         self.screen.blit(button_text, button_rect)
         if button_rect not in self.button_rects:
             self.button_rects.append(button_rect)
+            
         # Update the display
         self.update_confetti()  
         pygame.display.flip()
@@ -278,12 +279,12 @@ class TicTacToe:
                                         print("It's a tie!")
                                         self.winner = "It's a tie!"
                                     else:
-
                                         info = {
                                             "grid": self.grid,
                                             "player": self.player
                                         }
                                         client.publish(GAME_STATE_TOPIC, json.dumps(info))
+                                        self.switch_light_color()
 
                 if self.winner:
                     self.end_screen()        
@@ -296,4 +297,8 @@ class TicTacToe:
                     text = font.render("Turn: " + self.current_player, True, BLACK)
                     self.screen.blit(text, (10, 300))
                     pygame.display.flip()
+
+    
+                
+
                 
