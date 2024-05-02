@@ -1,6 +1,7 @@
 import pygame
 from tic_tac_toe_2 import TicTacToe
 from type_racer import Type_Racer
+from simon_says import SimonSays
 # Initialize Pygame
 pygame.init()
 
@@ -65,6 +66,8 @@ while running:
                 pass
             elif simon_rect.collidepoint(x,y):
                 print('simon')
+                simon = SimonSays(screen)  # Pass the screen surface
+                simon.run_game()
                 pass
 
     # Clear the screen
