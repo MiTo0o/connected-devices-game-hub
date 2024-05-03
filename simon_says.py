@@ -23,7 +23,6 @@ COLOR_SEQUENCE = [RED, GREEN, BLUE]
 class SimonSays:
     def __init__(self,screen):
         self.screen = screen
-
         # Define cell size and padding
         self.CELL_SIZE = 80
         self.CELL_PADDING = 1
@@ -51,6 +50,7 @@ class SimonSays:
         GPIO.setup(self.QUIT_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         self.SCREEN_WIDTH = 240
         self.SCREEN_HEIGHT = 320
+
     def show_pause_popup(self):
         # Create a font object
         font = pygame.font.Font(None, 36)
@@ -141,7 +141,7 @@ class SimonSays:
                 self.show_pause_popup()
             else:
                 player_input = False  # Flag to track if player has inputted something
-
+                
                 # Draw buttons on the screen
                 self.screen.fill(WHITE)
                 self.RED_BUTTON_RECT = pygame.draw.rect(self.screen, RED, (10, 10, 100, 100))
