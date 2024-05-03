@@ -46,13 +46,13 @@ class Type_Racer:
         self.clock = pygame.time.Clock()
         self.input_text = ''
         self.start_time = 0
-        self.time_limit = 50
+        self.time_limit = 20
         self.score = 0
         self.active = False
 
         self.sentences = [
-            "hello world this is a try to type this sentence",
-            "try to type this sentence try to type this sentence",
+            "hello world this is a big sentence we love this class john",
+            "boom lampi world hello phone, apple mac air buntu hi yes",
         ]
         self.current_sentence = random.choice(self.sentences)
         
